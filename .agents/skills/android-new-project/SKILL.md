@@ -582,3 +582,221 @@ object DispatcherModule {
 - Every new ui-toolkit component must have Compose UI tests.
 - Test tags defined in a constants object — never inline strings in test assertions.
 - `shared/domain/` must have zero Android imports.
+
+---
+
+### Step 8 — Write CLAUDE.md at the project root
+
+Create `CLAUDE.md` at the project root. This file is auto-loaded by Claude Code
+in every session, ensuring all agents follow the same architecture without being
+told explicitly.
+
+```markdown
+# CLAUDE.md
+
+## Architecture
+Clean layered architecture with MVVM, Jetpack Compose, Kotlin Multiplatform.
+
+### Modules
+- `shared/` — KMP. All business logic. Zero Android imports in `domain/`.
+- `feature/<name>/` — One module per feature. Compose UI + ViewModel only.
+- `app/` — DI wiring, navigation host, entry point only.
+- `ui-toolkit` — imported as Gradle dependency from separate repo.
+
+### Layer rules
+- `domain/` — Pure Kotlin. Repository interfaces only. No implementations.
+- `data/` — Implements domain interfaces. Ktor, SQLDelight, etc.
+- `ui/` — Compose + ViewModel. No business logic in @Composable functions.
+- `data/` must NOT be imported by `app/` directly — only through DI bindings.
+
+## Non-negotiables
+- No business logic in `@Composable` functions.
+- No `GlobalScope` — use `viewModelScope`, `lifecycleScope`, or injected scope.
+- No `!!` operators.
+- No hardcoded strings — use string resources.
+- No hardcoded colors or dimensions — use design tokens from ui-toolkit.
+- `shared/domain/` must have zero Android imports.
+
+## Testing requirements
+- Every screen: Compose UI tests for all UiState branches + corner cases.
+- Every ViewModel: unit tests for every state transition.
+- Every UseCase: unit test in `commonTest`.
+- Every ui-toolkit component: Compose UI test.
+- Test tags in constants objects — never inline strings in tests.
+- Use Turbine for Flow testing, MockK for mocking, coroutines-test for dispatchers.
+
+## Progress & planning
+- See `Progress.md` for current work status.
+- See `plan/index.md` for all feature and bug plans.
+- See `specs/` for feature specs (SDD).
+
+## Spec-Driven Development
+Before implementing any feature, write a spec in `specs/features/<slug>/spec.md`.
+Use `specs/template.md` as the base. Get spec approved before writing code.
+```
+
+---
+
+### Step 9 — Create Progress.md
+
+Create `Progress.md` at the project root:
+
+```markdown
+# Progress
+
+## Current session
+- **Date:**
+- **Focus:**
+- **Branch:**
+
+## In progress
+<!-- What is actively being worked on -->
+-
+
+## Completed
+<!-- Finished tasks — add date -->
+-
+
+## Blocked
+<!-- What is blocked and why -->
+-
+
+## Up next
+<!-- Next tasks to pick up in the next session -->
+-
+```
+
+---
+
+### Step 10 — Create plan/ structure
+
+```
+plan/
+  index.md
+  generic.md
+  features/
+    .gitkeep
+  bugs/
+    .gitkeep
+```
+
+**`plan/index.md`:**
+```markdown
+# Plan Index
+
+| Type | Name | Status | Plan file |
+|------|------|--------|-----------|
+| — | — | — | — |
+
+## Status legend
+- `draft` — plan written, not started
+- `in-progress` — actively being implemented
+- `blocked` — waiting on something
+- `done` — shipped
+```
+
+**`plan/generic.md`** (reusable template for any task):
+```markdown
+# Plan: <title>
+
+## Goal
+One sentence describing what this achieves.
+
+## Context
+Why we are doing this. Links to spec, Jira ticket, or design.
+
+## Phases overview
+1. Phase 1 — <outcome>
+2. Phase 2 — <outcome>
+
+## Phase 1 — <title>
+**Goal:** <one sentence>
+**Files:**
+- add: `path/to/file.kt` — purpose
+- edit: `path/to/file.kt` — what changes
+
+**Tests:**
+- `path/to/Test.kt` — what it asserts [unit | compose-ui]
+
+**Commits:**
+1. `test(scope): add failing tests for X`
+2. `feat(scope): implement X`
+
+**Definition of done:** <observable outcome>
+
+---
+_Copy Phase 1 block for each additional phase._
+```
+
+---
+
+### Step 11 — Create specs/ structure
+
+```
+specs/
+  README.md
+  template.md
+  features/
+    .gitkeep
+  bugs/
+    .gitkeep
+```
+
+**`specs/README.md`:**
+```markdown
+# Specs
+
+Spec-Driven Development (SDD) for this project.
+
+## Workflow
+1. Create a spec before writing any code.
+2. Use `template.md` as the base.
+3. Place feature specs in `features/<slug>/spec.md`.
+4. Place bug specs (when the fix is complex) in `bugs/<ticket-id>/spec.md`.
+5. Get spec reviewed/approved before implementation starts.
+6. Keep the spec updated if scope changes mid-implementation.
+
+## Spec → Plan → Code
+Every spec links to a plan in `plan/`. Every plan phase traces back to
+acceptance criteria in the spec. Tests must cover every acceptance criterion.
+```
+
+**`specs/template.md`:**
+```markdown
+# Spec: <Feature name>
+
+**Date:** YYYY-MM-DD
+**Status:** draft | approved | in-progress | done
+**Plan:** [plan/features/<slug>.md](../plan/features/<slug>.md)
+
+---
+
+## Overview
+One paragraph: what problem this solves and what the outcome looks like.
+
+## User stories
+- As a <user>, I want <action> so that <value>.
+
+## Acceptance criteria
+- AC-1: Given <context>, when <action>, then <outcome>.
+- AC-2:
+- AC-3:
+
+## Non-goals
+What this spec explicitly does NOT cover.
+
+## UX notes
+Screen list, key states, copy decisions. Link to Figma if available.
+
+## Data model & API contract
+Key data classes, API endpoints, request/response shape, error codes.
+
+## Edge cases & error states
+| Scenario | Expected behaviour |
+|----------|--------------------|
+| Network error | Show error state with retry |
+| Empty response | Show empty state |
+
+## Open questions
+- [ ] Question — owner
+```

@@ -170,8 +170,69 @@ Keep files terse and high-signal. Long prose belongs in the codebase; this is a 
 
 ---
 
+---
+
+## Mode C — NEW PROJECT SETUP
+
+Triggered automatically during INDEX (Mode A) when `CLAUDE.md` does not exist
+at the project root. Also triggered explicitly by phrases like "set up new
+project", "scaffold project guidelines", "init project docs".
+
+This mode writes four files **inside the target project** (the only exception
+to the CONTEXT_ROOT rule — these belong in the repo):
+
+### What to create
+
+**1. `CLAUDE.md` at project root**
+Read `.agents/skills/android-new-project/SKILL.md` and extract Step 7
+(Non-negotiables) + the architecture rules. Write them into `CLAUDE.md` using
+the template defined in Step 8 of that skill. This file is auto-loaded by
+Claude Code in every session, ensuring all agents follow the architecture
+without being told explicitly.
+
+**2. `Progress.md` at project root**
+Create using the template from Step 9 of the `android-new-project` skill.
+If `Progress.md` already exists, do NOT overwrite it.
+
+**3. `plan/` folder**
+Create the structure from Step 10 of the `android-new-project` skill:
+- `plan/index.md`
+- `plan/generic.md`
+- `plan/features/.gitkeep`
+- `plan/bugs/.gitkeep`
+
+If `plan/` already exists, do NOT overwrite existing files — only add missing
+ones.
+
+**4. `specs/` folder**
+Create the structure from Step 11 of the `android-new-project` skill:
+- `specs/README.md`
+- `specs/template.md`
+- `specs/features/.gitkeep`
+- `specs/bugs/.gitkeep`
+
+If `specs/` already exists, do NOT overwrite existing files — only add missing
+ones.
+
+### Detection logic (called from Mode A — INDEX)
+
+After Step 1 (verify root), check:
+```bash
+[ -f "<project-root>/CLAUDE.md" ] && echo "EXISTS" || echo "NEW"
+```
+- If `CLAUDE.md` does not exist → run Mode C before continuing with INDEX steps.
+- If `CLAUDE.md` exists → skip Mode C entirely. INDEX proceeds as normal.
+
+Report to the user which path was taken:
+> "New project detected — writing CLAUDE.md, Progress.md, plan/, and specs/ ..."
+> or
+> "Existing project — skipping new-project setup."
+
+---
+
 ## Operating rules
 
-- Never write context files inside the target project — always under `CONTEXT_ROOT`.
+- Never write context files (architecture.md, modules.md, etc.) inside the target project — always under `CONTEXT_ROOT`.
+- Exception: `CLAUDE.md`, `Progress.md`, `plan/`, and `specs/` belong inside the project repo (Mode C only).
 - Never invent file paths or component names — every entry must come from a file you read.
 - Do not implement any features or write application code.
