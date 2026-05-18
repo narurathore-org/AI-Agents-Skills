@@ -1,26 +1,72 @@
 # AI-Agents-Skills
 
-A central place to store reusable AI agents and skills so they can be shared across repositories without being lost.
+Central git storage for all my AI agents and skills. Clone once, sync everywhere via a single script.
 
-## Scope
-
-This repo holds agents and skills for **all AI tools** I use — currently including:
-
-- [Claude Code](https://claude.com/claude-code) (agents under `.claude/agents/`, skills under `.claude/skills/`)
-- [Codex](https://github.com/openai/codex)
-- More to be added as needed
-
-Each agent/skill should note which tool(s) it targets so it can be dropped into the right place in a consuming repo.
+Currently Claude Code only. Codex support to be added later.
 
 ## Structure
 
 ```
-agents/    # Reusable agents (subagent definitions, prompts, configs)
-skills/    # Reusable skills (slash commands, workflows, scripts)
+.claude/agents/              # Claude agent wrappers — synced to ~/.claude/agents/
+  android-dev.md
+  android-qa-insights.md
+  android-qa-test-creator.md
+  crash-orchestrator.md
+  kotlin-architect-developer.md
+
+.agents/                     # Shared prompts and skills (used by Claude + Codex)
+  android-dev/PROMPT.md
+  crash-orchestrator/PROMPT.md
+  skills/
+    confluence/SKILL.md
+    datadog/SKILL.md
+    github-pr/SKILL.md
+    jira/SKILL.md
+    jira-bug-ticket/SKILL.md
+
+scripts/
+  setup-agents.sh            # Setup script
 ```
 
-Inside each directory, group by tool or by topic — whichever makes the agent/skill easier to find and copy into another project.
+## Setup
 
-## Usage
+### 1. Clone the repo
 
-To use an agent or skill in another repo, copy the relevant folder into that repo's tool-specific location (e.g. `.claude/agents/` or `.claude/skills/` for Claude Code).
+```bash
+git clone https://github.com/narurathore/AI-Agents-Skills.git ~/Documents/AI-Agents-Skills
+```
+
+### 2. Sync Claude agents globally
+
+Copies all Claude agent wrappers to `~/.claude/agents/` so they are available in every project:
+
+```bash
+./scripts/setup-agents.sh
+```
+
+### 3. Set up shared prompts and skills in a project
+
+Copies `.agents/` (prompts + skills) into a target project so Claude agents can reference them:
+
+```bash
+# into current directory
+./scripts/setup-agents.sh --project
+
+# into a specific project
+./scripts/setup-agents.sh --project ~/path/to/repo
+```
+
+## Keeping agents up to date
+
+When agents change in this repo, re-run the script to sync:
+
+```bash
+cd ~/Documents/AI-Agents-Skills && git pull && ./scripts/setup-agents.sh
+```
+
+## Adding new agents
+
+1. Add the Claude wrapper under `.claude/agents/<name>.md`
+2. If it references a shared prompt, add it under `.agents/<name>/PROMPT.md`
+3. If it uses skills, add them under `.agents/skills/<name>/SKILL.md`
+4. Commit, push, and run `setup-agents.sh` to sync globally
