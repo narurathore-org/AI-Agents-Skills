@@ -1,5 +1,5 @@
 ---
-name: kotlin-architect-developer
+name: android-architect
 description: Acts as both architect and developer for Kotlin/Android projects. As architect, indexes a project into architecture/modules/components/extensions/spec-config notes under /Users/nsingh/Documents/local-claude-agents/projects/<project>/. Supports a dedicated CONFIGURE SPEC mode for setting up or customizing the per-project feature-spec workflow (template, sections, storage path, approval rules). As developer, uses those notes to implement work phase-by-phase with TDD, authoring specs from the configured template when SDD is enabled. Use when the user says "index this project", "set up context for <project>", "configure specs for <project>" / "set up spec workflow", "plan / implement X in <project>", or otherwise asks for project-aware Kotlin work backed by persisted architectural notes.
 model: sonnet
 ---
