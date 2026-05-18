@@ -402,6 +402,150 @@ Do not proceed until the orchestrator relays "approved" / "go" / "proceed".
 If the user requests changes to the phase breakdown, revise the plan file,
 show the revised plan, and ask again.
 
+---
+
+### SPEC_SYNC — Mid-implementation spec update cycle
+
+This cycle can be triggered at any point during B5. When triggered, it takes
+priority over everything — the current phase is paused until the spec is
+updated and approved.
+
+**The rule:** the spec is always the source of truth. If code and spec diverge,
+update the spec first, get approval, then continue coding. Never silently
+handle something the spec doesn't know about.
+
+#### Trigger conditions
+
+Stop the current phase immediately and enter SPEC_SYNC when you encounter any
+of the following:
+
+| Trigger | Example |
+|---------|---------|
+| **Technical constraint** | An AC is impossible as written — platform API doesn't work that way, dependency doesn't support it, architecture layer rule blocks the approach |
+| **New edge case** | Coding reveals a failure mode not listed in `edge-cases.md` — e.g. concurrent requests, stale cache, partial data |
+| **API contract drift** | Actual backend response differs from `api.md` — different field name, nullable where it wasn't, extra error code |
+| **Open question answered** | An OQ from `open-questions.md` gets resolved and the answer changes the approach |
+| **AC needs rewording** | An AC is ambiguous and implementation revealed two valid interpretations — need to lock in which one |
+| **Scope change** | User or new discovery reveals the feature needs more or less than what the spec says |
+
+Do **not** enter SPEC_SYNC for minor implementation details (variable names,
+file locations, minor refactors) — only when the spec itself would be wrong or
+incomplete if not updated.
+
+#### SPEC_SYNC steps
+
+**S1 — Stop and emit**
+
+Immediately stop writing code. Do not commit any partial work. Emit to the
+orchestrator:
+
+```
+SPEC_SYNC_TRIGGERED
+  phase: <current phase number and title>
+  trigger: <one of: technical_constraint | new_edge_case | api_drift |
+            oq_answered | ac_ambiguity | scope_change>
+  description: <1–2 sentences: what was discovered and why the spec needs updating>
+  affected_files: [spec.md | ux.md | api.md | edge-cases.md | open-questions.md]
+  impact_on_plan: <none | add_phase | remove_phase | revise_phase_N>
+```
+
+**S2 — Classify the spec change**
+
+Based on the trigger, identify exactly which spec file(s) need updating:
+
+| Trigger | Files to update |
+|---------|----------------|
+| Technical constraint that changes an AC | `spec.md` (revise AC) + optionally `edge-cases.md` |
+| New edge case | `edge-cases.md` (add row) |
+| API contract drift | `api.md` (update contract) + `edge-cases.md` if new error code |
+| OQ answered | `open-questions.md` (fill Answer column) + whichever file the answer affects |
+| AC ambiguity | `spec.md` (clarify AC wording) |
+| Scope shrinks | `spec.md` (add to Non-goals) |
+| Scope grows | `spec.md` (add AC) + possibly `ux.md` / `api.md` + new plan phase |
+
+**S3 — Propose the spec change**
+
+Show the exact proposed edits to the spec file(s) as fenced diffs in chat.
+Do not write any file yet. Format:
+
+```
+## Spec update proposal — <slug>
+
+### Trigger
+<what was discovered>
+
+### Proposed changes
+
+#### EDIT: specs/features/<slug>/edge-cases.md
+```diff
++ | Concurrent request while loading | Cancel in-flight request, show latest result | AC-2 |
+```
+
+#### EDIT: specs/features/<slug>/spec.md  (if AC wording changes)
+```diff
+- AC-2: Given valid user data, when loaded, then show profile.
++ AC-2: Given valid user data, when loaded (cancelling any in-flight request), then show latest profile.
+```
+
+### Impact on plan
+<none | "Phase 3 needs an extra commit for request cancellation logic">
+
+Apply this spec update? (yes / revise: <feedback> / reject: use different approach)
+```
+
+Wait for the orchestrator to relay the user's reply.
+
+- **`yes`** → proceed to S4.
+- **`revise: <feedback>`** → incorporate feedback, re-show the proposal, ask again.
+- **`reject`** → the spec stays unchanged. Find an implementation approach that
+  satisfies the existing spec without adding the triggering behaviour. Resume B5
+  from where it stopped.
+
+**S4 — Apply and commit the spec update**
+
+Write the approved spec file changes. Then commit:
+
+```bash
+git add specs/<type>/<slug>/<file>.md
+git commit -m "docs(spec): update <slug> — <trigger summary>"
+```
+
+Use specific file paths — never `git add .`.
+
+**S5 — Update the plan if needed**
+
+If the spec change adds a new AC:
+- Add a new phase to `plan/features/<slug>.md` for that AC.
+- Update the phases overview table.
+- Update `plan/index.md` if the feature's scope label changed.
+
+If the spec change removes or narrows an AC:
+- Mark the affected phase in the plan as `cancelled` and note why.
+- Do not delete the phase row — keep history.
+
+If the plan changes, show the revised plan to the user and get confirmation
+before proceeding.
+
+**S6 — Update tests if existing tests are now wrong**
+
+If the spec change makes a previously written test assert the wrong behaviour
+(e.g. an AC was reworded), update the test in the same commit as the spec
+update (S4) or as an immediate follow-up commit:
+
+```bash
+git commit -m "test(<scope>): update AC tests to match revised spec"
+```
+
+Do not leave a passing test that asserts something the spec no longer says.
+
+**S7 — Resume the phase**
+
+Return to the step in B5 where SPEC_SYNC was triggered. Continue as if
+the spec always said what it now says. The TDD loop (B5.2) resumes from
+whichever commit (A or B) was in progress.
+
+---
+
 ### B5 — Implement phase-by-phase
 
 For each phase, follow this loop:
@@ -453,6 +597,10 @@ current phase:
 2. Apply approved changes. If during implementation you discover the approved
    diff is wrong (missing import, wrong signature), STOP — re-emit a revised
    preview and wait for approval again. Never silently patch.
+   **If you encounter a SPEC_SYNC trigger condition while writing code** (new
+   edge case, API drift, technical constraint, etc.) — STOP here, enter the
+   SPEC_SYNC cycle above, and resume this step only after the spec update is
+   approved and committed.
 3. Run:
    ```bash
    ./gradlew :<module>:assembleDebug
@@ -598,6 +746,8 @@ feat(<scope>): implement <X>
 test(<scope>): add compose UI tests for <Screen>
 fix(<scope>): <fix description>
 docs(spec): update spec status for <slug>
+docs(spec): update <slug> — <trigger summary>        ← SPEC_SYNC update
+test(<scope>): update AC tests to match revised spec  ← SPEC_SYNC test fix
 ```
 
 Always use specific file paths in `git add` — never `git add .` / `-A`.
@@ -617,3 +767,12 @@ feature explicitly requires changes there.
 - Always trace commits back to acceptance criteria from the spec.
 - If a requirement is ambiguous, emit a `SPEC_CLARIFICATION_NEEDED` block and
   stop rather than guessing.
+- **Spec is always the source of truth.** If code and spec diverge at any
+  point during implementation, enter SPEC_SYNC immediately — never patch
+  around a spec gap silently.
+- **Never leave a passing test that asserts something the spec no longer
+  says.** If a spec update invalidates a test, fix the test in the same
+  commit or the next one.
+- **One SPEC_SYNC per trigger.** Do not batch multiple unrelated spec changes
+  into a single SPEC_SYNC cycle — each trigger gets its own proposal,
+  approval, and commit so the history is readable.
