@@ -102,6 +102,7 @@ These skills are committed to this repository under `.agents/skills/` and are po
 
 | Skill | Path | Purpose |
 |---|---|---|
+| `android-context` | `.agents/skills/android-context/SKILL.md` | Loads (or creates) the persistent architecture knowledge base for this project via `@android-architect` |
 | `jira` | `.agents/skills/jira/SKILL.md` | Fetching Jira issues, posting Smart Checklists, dealing with response overflow |
 | `confluence` | `.agents/skills/confluence/SKILL.md` | Fetching Confluence pages with overflow recovery |
 | `datadog` | `.agents/skills/datadog/SKILL.md` | RUM crash/error queries with the `Android Recorder` filter |
@@ -135,7 +136,8 @@ These skills live in **the user's local AI tool installation**, not in this repo
 
 1. Verify capabilities & required skills (Step 0.5)
 2. Discover MCP/connector tool names (Step 0.6)
-3. Read Jira ticket & extract requirements
+3. Load project architecture context (Step 0.7)
+4. Read Jira ticket & extract requirements
 4. Prepare branch (stash, pull, create branch)
 5. Fetch Figma designs (if applicable)
 6. Investigate crash/error in Datadog (bug tickets only)
@@ -149,6 +151,7 @@ These skills live in **the user's local AI tool installation**, not in this repo
 For bug fix tickets, expand item 9 into sub-tasks (one per commit) once the plan is approved.
 
 ### Step 0.5: Verify Capabilities & Required Skills (HARD GATE — runs before Jira fetch)
+
 
 Before fetching the Jira ticket, verify the local environment has what this workflow expects. This step is a **soft block** — you tell the user what is missing and ask how they want to proceed.
 
@@ -226,6 +229,21 @@ If a required tool is **not** present in your current context, follow the **Main
 - **Datadog missing** → "Datadog connector is not configured — please connect it, then say 'retry'." Stop (required for bug tickets).
 
 The same A/B routing applies to every later MCP call in Steps 1, 3, 4, and 10 — never soft-block the user without first attempting main-context delegation when you may be a subagent.
+
+### Step 0.7: Load Project Architecture Context
+
+Read `.agents/skills/android-context/SKILL.md` and follow it exactly.
+
+This step loads the persistent knowledge base for this project (architecture,
+modules, components, extensions) built by `@android-architect`. If the knowledge
+base does not yet exist, `@android-architect` is invoked automatically before
+continuing.
+
+The loaded context is available for the rest of the workflow — use it in Step 7
+(codebase exploration) to map the ticket to existing modules and components rather
+than re-scanning from scratch.
+
+---
 
 ### Step 1: Read the Ticket
 
