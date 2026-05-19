@@ -729,7 +729,30 @@ When `@orchestrator refresh` runs, for each project that has
 3. Read existing `Progress.md` / `plan/index.md` (and any monorepo
    subprojects). Propose an initial task list to the user with status
    `pending` for everything not already marked done.
-4. On user approval, write the ledger and create `.orchestrator/.gitkeep`.
+4. On user approval, write the ledger.
+5. **Always gitignore the ledger by default.** The ledger is per-developer
+   local state, not a shared project artifact. Tracking it causes merge
+   conflicts when parallel branches update task rows. Specifically:
+   - If `<project_root>/.gitignore` exists and does not already contain
+     `.orchestrator/`, append a section:
+     ```
+     # ── Orchestrator (local-only task ledger) ────────────────────────
+     # Per-developer state, not a shared artifact.
+     .orchestrator/
+     ```
+     and commit `.gitignore` to whatever branch the user is on (or stash
+     it if the working tree is dirty — surface to the user).
+   - If the ledger somehow was already tracked (e.g. carried over from a
+     prior project), run `git rm --cached <project_root>/.orchestrator/tasks.md`
+     before the first edit lands.
+   - The truth-of-record across sessions is the merged-PRs convention
+     (`Task-ID: <N>` in PR body) — `gh pr list --search "Task-ID: in:body"`
+     reconstructs ledger state from GitHub on `@orchestrator refresh` and
+     `@orchestrator reconcile`. The local file is just a cache.
+   - If the user explicitly wants the ledger shared (multi-developer
+     project where everyone agrees to coordinate), they can comment out
+     the `.orchestrator/` line in `.gitignore` — but this is opt-in, not
+     default.
 
 ### `reconcile` mode
 
@@ -778,3 +801,13 @@ edits to different branches.
 - If `gh` is not authenticated or the project has no GitHub remote,
   skip the PR-merge check and the fallback scan; show a one-line warning
   in the dashboard footer: `⚠ gh unavailable — ledger trusted as-is`.
+- The ledger at `<project_root>/.orchestrator/tasks.md` is **per-developer
+  local state by default** — it MUST be gitignored. `init-ledger` is
+  responsible for adding `.orchestrator/` to the project's `.gitignore`
+  on first run. If the ledger appears tracked on any project (e.g.
+  detected via `git ls-files .orchestrator/`), surface a one-line
+  warning in the dashboard footer:
+  `⚠ ledger is tracked in git — add .orchestrator/ to .gitignore`
+  and offer to fix it with `@orchestrator reconcile`. The cross-session
+  source of truth is the PR-body `Task-ID: <N>` convention, NOT the
+  file in the repo.
