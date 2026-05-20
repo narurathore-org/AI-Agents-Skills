@@ -6,8 +6,8 @@
         "hooks": [
           {
             "type": "command",
-            "command": "jq -r '.tool_input.file_path // empty' | { read -r f; case \"$f\" in */.claude/agents/*.md) cd /Users/nsingh/Documents/AI-Agents-Skills && ./scripts/setup-agents.sh ;; esac; } 2>/dev/null || true",
-            "statusMessage": "Syncing agents globally..."
+            "command": "jq -r '.tool_input.file_path // empty' | { read -r f; case \"$f\" in */.claude/agents/*.md|*/.agents/*) repo=\"$(git -C \"$(dirname \"$f\")\" rev-parse --show-toplevel 2>/dev/null)\"; [ -n \"$repo\" ] && git -C \"$repo\" diff --quiet -- \"$f\" 2>/dev/null || echo \"⚠ Agent file changed — remember to commit + push: $f\" ;; esac; } 2>/dev/null || true",
+            "statusMessage": "Checking agent sync state..."
           }
         ]
       }
