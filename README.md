@@ -38,11 +38,13 @@ git clone https://github.com/narurathore/AI-Agents-Skills.git ~/Documents/AI-Age
 
 ### 2. Sync Claude agents globally
 
-Copies all Claude agent wrappers to `~/.claude/agents/` so they are available in every project:
+Symlinks `~/.claude/agents/` → this repo's `.claude/agents/` so agents are available in every project and any edit (in either path) is reflected instantly with no copy step:
 
 ```bash
 ./scripts/setup-agents.sh
 ```
+
+After editing an agent locally, commit + push to share the change with other machines. The repo's `.claude/settings.json` includes a PostToolUse hook that prints a reminder when an agent file changes.
 
 ### 3. Set up shared prompts and skills in a project
 
@@ -58,10 +60,10 @@ Copies `.agents/` (prompts + skills) into a target project so Claude agents can 
 
 ## Keeping agents up to date
 
-When agents change in this repo, re-run the script to sync:
+With the symlink in place, just pull — no re-sync needed:
 
 ```bash
-cd ~/Documents/AI-Agents-Skills && git pull && ./scripts/setup-agents.sh
+cd ~/AI-Agents-Skills && git pull
 ```
 
 ## Adding new agents
